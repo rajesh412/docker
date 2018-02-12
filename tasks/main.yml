@@ -1,0 +1,37 @@
+---
+- name: Install python setup tools
+  yum: name=python-setuptools
+  tags: docker
+
+- name: Install Pypi
+  easy_install: name=pip
+  tags: docker
+
+- name: Install docker-py
+  pip: name=docker-py
+  tags: docker
+
+- name: Generate systemd unit file
+  template:
+    src: "/etc/ansible/roles/docker/templates/docker-ce.repo.j2"
+    dest: "/etc/yum.repos.d/docker-ce.repo"
+    owner: "root"
+    group: "root"
+    mode: "0644"
+
+- name: Install Docker
+  yum: name=docker-ce state=latest
+  tags: docker
+
+- name: Make sure Docker is running
+  service: name=docker state=running
+  tags: docker
+
+- name: Install Docker Compose
+  get_url:
+    url: "https://github.com/docker/compose/releases/download/1.19.0/docker-compose-Linux-x86_64"
+    dest: "/usr/local/bin/docker-compose"
+    force: True
+    owner: "root"
+    group: "root"
+    mode: "0755"
