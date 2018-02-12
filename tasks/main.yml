@@ -11,7 +11,7 @@
   pip: name=docker-py
   tags: docker
 
-- name: Generate systemd unit file
+- name: Copy Docker repo file
   template:
     src: "/etc/ansible/roles/docker/templates/docker-ce.repo.j2"
     dest: "/etc/yum.repos.d/docker-ce.repo"
