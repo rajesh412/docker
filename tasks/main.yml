@@ -1,15 +1,14 @@
 ---
-- name: Install python setup tools
-  yum: name=python-setuptools
-  tags: docker
-
-- name: Install Pypi
-  easy_install: name=pip
-  tags: docker
-
-- name: Install docker-py
-  pip: name=docker-py
-  tags: docker
+- name: Uninstall Docker if version is less than 17.03
+  package:
+    name: '{{ item }}'
+    state: absent
+  with_items:
+    - docker
+    - docker-common
+    - docker-engine-selinux
+    - docker-engine
+  when: docker_version | version_compare("17.03", "<")
 
 - name: Copy Docker repo file
   template:
@@ -19,12 +18,44 @@
     group: "root"
     mode: "0644"
 
+- name: Install python setup tools and necessary packages
+  yum:
+    name: '{{ item }}'
+    state: present
+  with_items:
+    - yum-utils
+    - device-mapper-persistent-data
+    - lvm2
+    - unzip
+    - wget
+  tags: docker
+
+- name: Upgrade yum packages
+  yum:
+    name: *
+    state: latest  
+
+#- name: Install Pypi
+#  easy_install:
+#    name: pip
+#  tags: docker
+
+#- name: Install docker-py
+#  pip:
+#    name: docker-py
+#  tags: docker
+
 - name: Install Docker
-  yum: name=docker-ce state=latest
+  yum:
+    name: docker-ce
+    state: latest
   tags: docker
 
 - name: Make sure Docker is running
-  service: name=docker state=running
+  service:
+    name: docker
+    state: started
+    enabled: yes
   tags: docker
 
 - name: Install Docker Compose
@@ -35,3 +66,13 @@
     owner: "root"
     group: "root"
     mode: "0755"
+
+- name: Get Black Duck Installation package
+  unarchive:
+    src: https://github.com/blackducksoftware/hub/archive/v4.4.0.tar.gz
+    dest: /root/
+    remote_src: yes
+
+- name: run the service defined in my_project's docker-compose.yml
+  docker_service:
+    project_src: /root/hub-4.4.0/docker-compose
