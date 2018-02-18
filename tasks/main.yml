@@ -1,4 +1,10 @@
 ---
+- name: check current docker version
+  command: docker --version
+  register: docker_version
+  changed_when: false
+  failed_when: false
+
 - name: Uninstall Docker if version is less than 17.03
   package:
     name: '{{ item }}'
@@ -6,9 +12,10 @@
   with_items:
     - docker
     - docker-common
-    - docker-engine-selinux
     - docker-engine
-  when: docker_version | version_compare("17.03", "<")
+  when: >
+    docker_version.stdout is defined
+    and docker_version.stdout | version_compare("17.03", "<")
 
 - name: Copy Docker repo file
   template:
@@ -18,7 +25,12 @@
     group: "root"
     mode: "0644"
 
-- name: Install python setup tools and necessary packages
+- name: Install Content-Selinux for Docker
+  yum:
+    name: http://mirror.centos.org/centos/7/extras/x86_64/Packages/container-selinux-2.21-1.el7.noarch.rpm
+    state: present
+
+- name: Install necessary packages
   yum:
     name: '{{ item }}'
     state: present
@@ -30,28 +42,13 @@
     - wget
   tags: docker
 
-- name: Upgrade yum packages
-  yum:
-    name: *
-    state: latest  
-
-#- name: Install Pypi
-#  easy_install:
-#    name: pip
-#  tags: docker
-
-#- name: Install docker-py
-#  pip:
-#    name: docker-py
-#  tags: docker
-
 - name: Install Docker
   yum:
     name: docker-ce
     state: latest
   tags: docker
 
-- name: Make sure Docker is running
+- name: Make sure Docker is running and Enabled at boot time
   service:
     name: docker
     state: started
@@ -73,6 +70,7 @@
     dest: /root/
     remote_src: yes
 
-- name: run the service defined in my_project's docker-compose.yml
-  docker_service:
-    project_src: /root/hub-4.4.0/docker-compose
+- name: Run docker-compose
+  command: docker-compose -f docker-compose.yml -p hub up -d
+  args:
+    chdir: /root/hub-4.4.0/docker-compose/
