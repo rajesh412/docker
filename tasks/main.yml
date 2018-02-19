@@ -71,6 +71,7 @@
     remote_src: yes
 
 - name: Run docker-compose
-  command: docker-compose -f docker-compose.yml -p hub up -d
+  shell: "COMPOSE_HTTP_TIMEOUT=200 docker-compose -f docker-compose.yml -p hub up -d"
   args:
     chdir: /root/hub-4.4.0/docker-compose/
+  tags: Black_Duck
